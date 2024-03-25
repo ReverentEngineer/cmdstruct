@@ -14,6 +14,7 @@ use syn::{
     Ident,
     LitStr,
     MetaList,
+    Path,
     Type
 };
 
@@ -28,50 +29,56 @@ pub fn command(input: TokenStream) -> TokenStream {
     }
 }
 
-
-struct CommandAttributes {
-    executable: String
+enum Executable {
+    Const(String),
+    Function(Path)
 }
 
+struct CommandAttributes {
+    executable: Executable,
+}
 
-    impl CommandAttributes {
-
-        fn parse(derive_input: &DeriveInput) -> Result<Self> {
-            let mut executable = None;
-            for attr in &derive_input.attrs {
-                if attr.path().is_ident("command") {
-                    match &attr.meta {
-                        syn::Meta::List(MetaList {
-                            path: _,
-                            delimiter: _,
-                            tokens: _
-                        }) => {
-                            attr.parse_nested_meta(|meta| {
-                                if meta.path.is_ident("executable") {
-                                    let value = meta.value()?;
-                                    let s: LitStr = value.parse()?;
-                                    executable = Some(s.value());
-                                    Ok(())
-                                } else{
-                                    return Err(syn::Error::new(attr.span(), "Unsupported attribute"))
-                                }
-
-                            })?;
-
-                        },
-                        _ => {}
+impl CommandAttributes {
+    fn parse(derive_input: &DeriveInput) -> Result<Self> {
+        let mut executable = None;
+        for attr in &derive_input.attrs {
+            if attr.path().is_ident("command") {
+                match &attr.meta {
+                    syn::Meta::List(MetaList {
+                        path: _,
+                        delimiter: _,
+                        tokens: _,
+                    }) => {
+                        attr.parse_nested_meta(|meta| {
+                            if meta.path.is_ident("executable") {
+                                let value = meta.value()?;
+                                let s: LitStr = value.parse()?;
+                                executable = Some(Executable::Const(s.value()));
+                                Ok(())
+                            } else if meta.path.is_ident("executable_fn") {
+                                let value = meta.value()?;
+                                let s: Path = value.parse()?;
+                                executable = Some(Executable::Function(s));
+                                Ok(())
+                            } else {
+                                return Err(syn::Error::new(attr.span(), "Unsupported attribute"));
+                            }
+                        })?;
                     }
+                    _ => {}
                 }
             }
-            if let Some(executable) = executable {
-                Ok(Self {
-                    executable 
-                })
-            } else {
-                Err(syn::Error::new(derive_input.span(), "No 'executable' defined for 'command'"))
-            }
+        }
+        if let Some(executable) = executable {
+            Ok(Self { executable })
+        } else {
+            Err(syn::Error::new(
+                derive_input.span(),
+                "No 'executable' defined for 'command'",
+            ))
         }
     }
+}
 
 struct Command {
     attributes: CommandAttributes,
@@ -213,23 +220,24 @@ fn append_arg_tokens(arg: &Arg) -> proc_macro2::TokenStream {
         ArgType::Option { name } => quote! {
             cmdstruct::Arg::append_option(&self.#ident, #name, &mut command);
         },
-        ArgType::Flag { name } => quote! {  
+        ArgType::Flag { name } => quote! {
             if self.#ident {
                 command.arg(#name);
             }
         },
         ArgType::Positional => quote! {
             cmdstruct::Arg::append_arg(&self.#ident, &mut command);
-        }
+        },
     }
 }
 
-
 impl Into<TokenStream> for Command {
-
     fn into(self) -> TokenStream {
         let args: Vec<_> = self.args.iter().map(append_arg_tokens).collect();
-        let executable = &self.attributes.executable;
+        let executable = match &self.attributes.executable {
+            Executable::Const(executable) => quote! { #executable },
+            Executable::Function(func) => quote! { #func(&self) },
+        };
         let struct_ident = &self.ident;
         let impls_combined = quote! {
 
