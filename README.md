@@ -15,7 +15,7 @@ struct Echo {
 
     /// Flag to provide
     #[arg(flag = "-n")]
-    no_new_line: bool
+    no_new_line: bool,
 
     /// String to echo
     #[arg]
