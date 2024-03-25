@@ -4,19 +4,14 @@ use cmdstruct::Command;
 
 #[test]
 fn option() {
-    
     #[derive(Command)]
     #[command(executable = "test")]
     struct Test {
-        
         #[arg(option = "--input")]
-        a: String 
-
+        a: String,
     }
 
-    let test = Test {
-        a: "a".to_string()
-    };
+    let test = Test { a: "a".to_string() };
 
     let command = test.command();
     assert_eq!(command.get_args().collect::<Vec<_>>(), vec!["--input", "a"]);
@@ -25,45 +20,37 @@ fn option() {
 
 #[test]
 fn option_optional() {
-    
     #[derive(Command)]
     #[command(executable = "test")]
     struct Test {
-        
         #[arg(option = "--input")]
-        a: Option<usize> 
-
+        a: Option<usize>,
     }
 
-    let mut test = Test {
-        a: Some(0)
-    };
+    let mut test = Test { a: Some(0) };
 
     let command = test.command();
     assert_eq!(command.get_args().collect::<Vec<_>>(), vec!["--input", "0"]);
     assert_eq!(command.get_program(), "test");
     test.a = None;
     let command = test.command();
-    assert_eq!(command.get_args().collect::<Vec<&std::ffi::OsStr>>(), Vec::<&std::ffi::OsStr>::new());
+    assert_eq!(
+        command.get_args().collect::<Vec<&std::ffi::OsStr>>(),
+        Vec::<&std::ffi::OsStr>::new()
+    );
     assert_eq!(command.get_program(), "test");
 }
-
-
 
 #[test]
 fn option_int() {
     #[derive(Command)]
     #[command(executable = "test")]
     struct Test {
-        
         #[arg(option = "--input")]
-        a: usize 
-
+        a: usize,
     }
 
-    let test = Test {
-        a: 3
-    };
+    let test = Test { a: 3 };
 
     let command = test.command();
     assert_eq!(command.get_args().collect::<Vec<_>>(), vec!["--input", "3"]);
@@ -72,19 +59,14 @@ fn option_int() {
 
 #[test]
 fn positional() {
-    
     #[derive(Command)]
     #[command(executable = "test")]
     struct Test {
-        
         #[arg]
-        a: String 
-
+        a: String,
     }
 
-    let test = Test {
-        a: "a".to_string()
-    };
+    let test = Test { a: "a".to_string() };
 
     let command = test.command();
     assert_eq!(command.get_args().collect::<Vec<_>>(), vec!["a"]);
@@ -93,19 +75,14 @@ fn positional() {
 
 #[test]
 fn positional_usize() {
-    
     #[derive(Command)]
     #[command(executable = "test")]
     struct Test {
-        
         #[arg]
-        a: usize
-
+        a: usize,
     }
 
-    let test = Test {
-        a: 0
-    };
+    let test = Test { a: 0 };
 
     let command = test.command();
     assert_eq!(command.get_args().collect::<Vec<_>>(), vec!["0"]);
@@ -137,11 +114,11 @@ fn executable_fn() {
     #[derive(Command)]
     #[command(executable_fn = exe)]
     struct Test {
-        suffix: String
+        suffix: String,
     }
 
     let test = Test {
-        suffix: "abc".to_string()
+        suffix: "abc".to_string(),
     };
 
     let command = test.command();

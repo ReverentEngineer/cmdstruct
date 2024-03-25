@@ -1,21 +1,8 @@
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{
-    parse_macro_input,
-    spanned::Spanned,
-    Attribute,
-    AttrStyle,
-    Data,
-    DataStruct,
-    DeriveInput,
-    Field,
-    Fields,
-    FieldsNamed,
-    Ident,
-    LitStr,
-    MetaList,
-    Path,
-    Type
+    parse_macro_input, spanned::Spanned, AttrStyle, Attribute, Data, DataStruct, DeriveInput,
+    Field, Fields, FieldsNamed, Ident, LitStr, MetaList, Path, Type,
 };
 
 type Result<T> = std::result::Result<T, syn::Error>;
@@ -25,13 +12,13 @@ pub fn command(input: TokenStream) -> TokenStream {
     let derive_input = parse_macro_input!(input as DeriveInput);
     match Command::parse(derive_input) {
         Ok(command) => command.into(),
-        Err(err) => err.into_compile_error().into()
+        Err(err) => err.into_compile_error().into(),
     }
 }
 
 enum Executable {
     Const(String),
-    Function(Path)
+    Function(Path),
 }
 
 struct CommandAttributes {
@@ -83,54 +70,47 @@ impl CommandAttributes {
 struct Command {
     attributes: CommandAttributes,
     ident: Ident,
-    args: Vec<Arg>
+    args: Vec<Arg>,
 }
 
 impl Command {
-
     fn parse(derive_input: DeriveInput) -> Result<Command> {
         let attributes = CommandAttributes::parse(&derive_input)?;
 
         let args = match derive_input.data {
             Data::Struct(DataStruct {
                 struct_token: _,
-                fields: Fields::Named(
-                    FieldsNamed {
+                fields:
+                    Fields::Named(FieldsNamed {
                         brace_token: _,
-                        mut named
-                    }
-                ),
-                semi_token: _
+                        mut named,
+                    }),
+                semi_token: _,
             }) => named.iter_mut().filter_map(collect_arg).collect(),
-            _ => Err(syn::Error::new(derive_input.span(),
-            "Only structs with named fields supported."))
+            _ => Err(syn::Error::new(
+                derive_input.span(),
+                "Only structs with named fields supported.",
+            )),
         }?;
         Ok(Command {
             attributes,
             ident: derive_input.ident.clone(),
-            args
+            args,
         })
     }
-
 }
 
-
-
 enum ArgType {
-    Option {
-        name: String
-    },
-    Flag {
-        name: String
-    },
-    Positional
+    Option { name: String },
+    Flag { name: String },
+    Positional,
 }
 
 #[allow(dead_code)]
 struct Arg {
     arg_type: ArgType,
     ident: Ident,
-    ty: Type
+    ty: Type,
 }
 
 type ArgResult = Result<(Option<Attribute>, Option<ArgType>)>;
@@ -142,9 +122,7 @@ fn parse_arg_with_attributes(attr: Attribute) -> ArgResult {
             if arg_type.is_none() {
                 let value = meta.value()?;
                 let s: LitStr = value.parse()?;
-                arg_type = Some(ArgType::Option {
-                    name: s.value()
-                });
+                arg_type = Some(ArgType::Option { name: s.value() });
                 Ok(())
             } else {
                 Err(meta.error("Only one argument type allowed."))
@@ -153,9 +131,7 @@ fn parse_arg_with_attributes(attr: Attribute) -> ArgResult {
             if arg_type.is_none() {
                 let value = meta.value()?;
                 let s: LitStr = value.parse()?;
-                arg_type = Some(ArgType::Flag {
-                    name: s.value()
-                });
+                arg_type = Some(ArgType::Flag { name: s.value() });
                 Ok(())
             } else {
                 Err(meta.error("Only one argument type allowed."))
@@ -163,51 +139,53 @@ fn parse_arg_with_attributes(attr: Attribute) -> ArgResult {
         } else {
             Err(meta.error("Unrecognized arg"))
         }
-    }).map(|_| {
-        arg_type.map_or((Some(attr), None), |arg_type| (None, Some(arg_type)))
     })
+    .map(|_| arg_type.map_or((Some(attr), None), |arg_type| (None, Some(arg_type))))
 }
 
 fn map_to_attr_or_arg(attr: Attribute) -> ArgResult {
     match attr.style {
         AttrStyle::Outer => match &attr.meta {
-            syn::Meta::List(list) if list.path.is_ident("arg")
-                => parse_arg_with_attributes(attr),
-                syn::Meta::Path(path) if path.is_ident("arg") =>
-                    Ok((None, Some(ArgType::Positional))),
-                _  => Ok((Some(attr), None))
+            syn::Meta::List(list) if list.path.is_ident("arg") => parse_arg_with_attributes(attr),
+            syn::Meta::Path(path) if path.is_ident("arg") => Ok((None, Some(ArgType::Positional))),
+            _ => Ok((Some(attr), None)),
         },
-        _  => Ok((Some(attr), None))
+        _ => Ok((Some(attr), None)),
     }
 }
 
 fn collect_arg(field: &mut Field) -> Option<Result<Arg>> {
     if let Some(ident) = &field.ident {
-        let arg_results: Result<Vec<_>> = field.attrs.clone()
-            .into_iter().map(map_to_attr_or_arg).collect();
+        let arg_results: Result<Vec<_>> = field
+            .attrs
+            .clone()
+            .into_iter()
+            .map(map_to_attr_or_arg)
+            .collect();
         match arg_results {
             Ok(results) => {
                 let unzipped: (Vec<_>, Vec<_>) = results.into_iter().unzip();
                 match unzipped {
                     (attrs, arg_types) => {
-                        let attrs: Vec<_> = attrs.into_iter()
-                            .filter_map(|attr| attr).collect();
-                        let mut arg_types: Vec<_> = arg_types.into_iter()
-                            .filter_map(|arg_type| arg_type).collect();
+                        let attrs: Vec<_> = attrs.into_iter().filter_map(|attr| attr).collect();
+                        let mut arg_types: Vec<_> = arg_types
+                            .into_iter()
+                            .filter_map(|arg_type| arg_type)
+                            .collect();
                         field.attrs = attrs;
                         match arg_types.len() {
                             1 => Some(Ok(Arg {
                                 arg_type: arg_types.remove(0),
                                 ident: ident.clone(),
-                                ty: field.ty.clone()
+                                ty: field.ty.clone(),
                             })),
                             0 => None,
-                            _ => Some(Err(syn::Error::new(field.span(), "Too many args")))
+                            _ => Some(Err(syn::Error::new(field.span(), "Too many args"))),
                         }
-                    },
+                    }
                 }
-            },
-            Err(err) => Some(Err(err))
+            }
+            Err(err) => Some(Err(err)),
         }
     } else {
         None
@@ -252,5 +230,4 @@ impl Into<TokenStream> for Command {
         };
         impls_combined.into()
     }
-
 }
