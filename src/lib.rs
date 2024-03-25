@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 pub use cmdstruct_macros::Command;
 
 pub trait Arg {
