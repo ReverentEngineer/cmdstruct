@@ -2,9 +2,13 @@
 
 pub use cmdstruct_macros::Command;
 
+/// A trait representing an argument to a command
 pub trait Arg {
+
+    /// Append as positional argument
     fn append_arg(&self, command: &mut std::process::Command);
 
+    /// Append as an option
     fn append_option(&self, name: &str, command: &mut std::process::Command) {
         self.append_arg(command.arg(name));
     }
