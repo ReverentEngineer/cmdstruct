@@ -124,3 +124,23 @@ fn executable_fn() {
     let command = test.command();
     assert_eq!(command.get_program(), "test-abc");
 }
+
+#[test]
+fn vec() {
+
+    #[derive(Command)]
+    #[command(executable = "test")]
+    struct Test {
+        #[arg(option = "-c")]
+        a: Vec<String>
+    }
+    
+    let test = Test {
+        a: vec!["b".to_string(), "c".to_string()]
+    };
+
+    
+    let command = test.command();
+    assert_eq!(command.get_program(), "test");
+    assert_eq!(command.get_args().collect::<Vec<_>>(), vec!["-c", "b", "-c", "c"]);
+}

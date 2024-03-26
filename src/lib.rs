@@ -50,3 +50,20 @@ where
         }
     }
 }
+
+impl<T> Arg for Vec<T>
+where
+    T: Arg,
+{
+    fn append_arg(&self, command: &mut std::process::Command) {
+        for argument in self {
+            argument.append_arg(command);
+        }
+    }
+
+    fn append_option(&self, name: &str, command: &mut std::process::Command) {
+        for argument in self {
+            argument.append_option(name, command);
+        }
+    }
+}
