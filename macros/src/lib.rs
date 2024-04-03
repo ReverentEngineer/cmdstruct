@@ -219,9 +219,9 @@ impl Into<TokenStream> for Command {
         let struct_ident = &self.ident;
         let impls_combined = quote! {
 
-            impl #struct_ident {
+            impl cmdstruct::Command for #struct_ident {
 
-                pub fn command(&self) -> std::process::Command {
+                fn command(&self) -> std::process::Command {
                     let mut command = std::process::Command::new(#executable);
                     #(#args)*
                     command

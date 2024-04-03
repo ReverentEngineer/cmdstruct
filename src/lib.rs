@@ -2,6 +2,14 @@
 
 pub use cmdstruct_macros::Command;
 
+/// A trait representing a particular command
+pub trait Command {
+
+    /// Generate a spawnable command
+    fn command(&self) -> std::process::Command;
+
+}
+
 /// A trait representing an argument to a command
 pub trait Arg {
 
