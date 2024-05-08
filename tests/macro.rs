@@ -144,3 +144,22 @@ fn vec() {
     assert_eq!(command.get_program(), "test");
     assert_eq!(command.get_args().collect::<Vec<_>>(), vec!["-c", "b", "-c", "c"]);
 }
+
+#[test]
+fn optional_option() {
+
+    #[derive(Command)]
+    #[command(executable = "test")]
+    struct Test {
+        #[arg(option = "-c")]
+        a: Option<Vec<String>>
+    }
+
+    let test = Test {
+        a: Some(vec!["b".to_string(), "c".to_string()])
+    };
+
+    let command = test.command();
+    assert_eq!(command.get_program(), "test");
+    assert_eq!(command.get_args().collect::<Vec<_>>(), vec!["-c", "b", "-c", "c"]);
+}

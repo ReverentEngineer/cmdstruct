@@ -53,7 +53,7 @@ where
 
     fn append_option(&self, name: &str, command: &mut std::process::Command) {
         match self {
-            Some(arg) => arg.append_arg(command.arg(name)),
+            Some(arg) => arg.append_option(name, command),
             None => {}
         }
     }
